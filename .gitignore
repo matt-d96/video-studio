@@ -1,0 +1,30 @@
+# Video Studio repo: code, templates and the skill only. Client media and config stay on this Mac.
+# Client media, brand assets, downloads (client agreements: nothing client-identifying in the repo)
+CLAUDE.local.md
+docs/setup-log.md
+clients/
+brand/
+downloads/
+projects.json
+*.bak-*
+# Big or third-party installs (reinstall per machine; see README)
+.venv/
+tools/models/
+tools/supoclip/
+tools/hyperframes/
+bin/ffmpeg
+bin/ffprobe
+# Never commit secrets
+.env
+*.env
+# Renders and caches
+*.mp4
+*.mov
+*.MP4
+*.MOV
+__pycache__/
+.DS_Store
+tools/instagram-agent-skill-src/
+
+# HyperFrames render caches
+.hyperframes/

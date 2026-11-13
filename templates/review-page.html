@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clip Review</title>
+<style>
+  :root { --bg:#0e0e10; --card:#18181b; --card2:#202024; --ink:#f4f4f5; --muted:#a1a1aa; --line:#2e2e33; --accent:#c9f27a; --warn:#f59e0b; --bad:#f87171; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system, "Source Sans 3", "Helvetica Neue", sans-serif; }
+  header { padding:24px 16px 8px; max-width:1240px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  header p { color:var(--muted); margin:0; max-width:820px; }
+  .controls { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px 11px; font:inherit; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  .status { color:var(--muted); font-size:13px; }
+  main { max-width:1240px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; display:grid; grid-template-columns:260px 1fr; gap:18px; }
+  @media (max-width:760px) { .card { grid-template-columns:1fr; } }
+  .phone { position:relative; aspect-ratio:9/16; border-radius:18px; overflow:hidden; background:#000; width:100%; max-width:260px; margin:0 auto; }
+  video { width:100%; height:100%; object-fit:cover; display:block; }
+  .ui { position:absolute; inset:0; pointer-events:none; display:none; }
+  .ui .right { position:absolute; right:8px; bottom:18%; display:flex; flex-direction:column; gap:14px; }
+  .ui .right span { width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.55); }
+  .ui .bottom { position:absolute; left:0; right:0; bottom:0; height:23%; background:linear-gradient(transparent, rgba(0,0,0,.55)); }
+  .ui .bottom i { position:absolute; left:10px; bottom:14%; width:60%; height:8px; border-radius:4px; background:rgba(255,255,255,.6); }
+  .ui .bottom b { position:absolute; left:10px; bottom:24%; width:40%; height:8px; border-radius:4px; background:rgba(255,255,255,.75); }
+  .showui .ui { display:block; }
+  .meta h2 { font-size:17px; margin:0; }
+  .meta .hook { color:var(--accent); font-weight:600; }
+  .meta .note { margin:2px 0 10px; color:var(--muted); font-size:13px; }
+  .row { display:grid; grid-template-columns:150px auto 1fr; gap:10px; align-items:center; padding:6px 0; border-top:1px solid var(--line); }
+  @media (max-width:760px) { .row { grid-template-columns:1fr; gap:4px; } }
+  .row label { font-weight:600; font-size:14px; }
+  .row small { display:block; color:var(--muted); font-weight:400; font-size:12px; }
+  .stars { display:flex; gap:4px; }
+  .stars button { width:32px; height:32px; padding:0; border-radius:7px; font-weight:700; }
+  .stars button.on { background:var(--accent); color:#111; border-color:var(--accent); }
+  input[type=text], textarea, select { width:100%; background:var(--card2); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font:inherit; }
+  textarea { min-height:56px; resize:vertical; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; padding:8px 0; border-top:1px solid var(--line); }
+  .chip { font-size:13px; padding:4px 9px; border-radius:999px; }
+  .chip.on { background:var(--warn); color:#111; border-color:var(--warn); }
+  .verdict { display:flex; gap:6px; }
+  .verdict button.on[data-v=Keep] { background:var(--accent); color:#111; }
+  .verdict button.on[data-v=Swap] { background:var(--warn); color:#111; }
+  .verdict button.on[data-v=Cut] { background:var(--bad); color:#111; }
+  .tnotes { border-top:1px solid var(--line); padding-top:8px; }
+  .tnotes ul { margin:6px 0 0; padding-left:18px; }
+  .tnotes li { margin:3px 0; }
+  .tnotes li span { color:var(--accent); font-variant-numeric:tabular-nums; margin-right:6px; }
+  .tnotes li button { font-size:12px; padding:1px 6px; margin-left:6px; }
+  .save { display:flex; gap:10px; align-items:center; margin-top:10px; }
+  .save button { background:var(--accent); color:#111; border-color:var(--accent); font-weight:700; }
+  footer { max-width:1240px; margin:0 auto; padding:0 16px 32px; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Client · batch name · N cuts</h1><!-- EDIT -->
+  <p>Rate each part 1–5 and say why. Every save is kept in <code>clients/&lt;slug&gt;/feedback/ratings.jsonl</code>. Before the next edit, the studio agent reads it and changes one specific thing (the "1% better" rule). Notes are the most useful part: "text too small", "start 2s later", "wrong moment, use the chorus at 11:20".</p>
+  <div class="controls">
+    <button id="playall">Play all (muted)</button>
+    <button id="pause">Pause all</button>
+    <button id="ui">Toggle Instagram UI overlay</button>
+    <span class="status" id="status">Loading saved feedback…</span>
+  </div>
+</header>
+<main id="list"></main>
+<footer>Drafts only. Nothing here is posted. Released songs get added in-app with Add audio.</footer>
+<script>
+const BATCH = "YYYY-MM-DD_batch-name";   // EDIT: the batch folder name
+const clips = [   // EDIT: one entry per clip in this batch
+  {id:"C1", file:"C1.mp4", title:"C1 · what it is", hook:"Hook text", src_in:"source + in point", crop_x:0, note:"What's in it, audio, length."}
+];
+const dims = [   // the one rating shape (scripts/ratings.py): overall + 4 scores
+  ["moment","Moment","Right part of the show?"],
+  ["look","Look","Framing, grade, hook font and position"],
+  ["sound","Sound","Mix, level, cut points, on the beat"],
+  ["pacing","Pacing","Length, start and end"],
+  ["overall","Overall","Would you post it?"]
+];
+const chips = ["too dark","subject cut off","shaky","boring first second","wrong moment","hook too long","text too small","text on too long","text in the way","badge not needed","audio clicks","too quiet","too loud","crowd noise","ends abruptly","too long","too short","wrong caption facts","love this"];
+const state = {};
+const $ = (s, el=document) => el.querySelector(s);
+const fmt = t => { t = Math.max(0, t); return `0:${String(Math.floor(t)).padStart(2,"0")}.${Math.floor((t%1)*10)}`; };
+
+function blank(c){ return {clip:c.id, batch:BATCH, file:c.file, hook:c.hook, src_in:c.src_in, crop_x:c.crop_x, scores:{}, notes:{}, tags:[], verdict:"", rank:"", better_hook:"", timed_notes:[], general:""}; }
+
+function render(){
+  const list = $("#list"); list.innerHTML = "";
+  for (const c of clips) {
+    const s = state[c.id];
+    const el = document.createElement("article"); el.className = "card"; el.dataset.id = c.id;
+    el.innerHTML = `
+      <div><div class="phone"><video src="${c.file}" controls playsinline loop preload="metadata"></video>
+        <div class="ui"><div class="right"><span></span><span></span><span></span><span></span></div><div class="bottom"><b></b><i></i></div></div></div></div>
+      <div class="meta">
+        <h2>${c.title}</h2><div class="hook">“${c.hook}”</div>
+        <div class="note">Source ${c.src_in} · crop x ${c.crop_x}px · ${c.note}</div>
+        ${dims.map(([k,l,h]) => `<div class="row"><label>${l}<small>${h}</small></label>
+          <div class="stars" data-k="${k}">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" class="${(s.scores[k]||0)>=n?"on":""}" aria-label="${l} ${n} of 5">${n}</button>`).join("")}</div>
+          <input type="text" data-note="${k}" placeholder="Why? (optional)" value="${(s.notes[k]||"").replace(/"/g,"&quot;")}"></div>`).join("")}
+        <div class="chips">${chips.map(t=>`<button type="button" class="chip ${s.tags.includes(t)?"on":""}" data-tag="${t}">${t}</button>`).join("")}</div>
+        <div class="row"><label>Better hook<small>Your rewrite</small></label><span></span><input type="text" data-f="better_hook" placeholder="e.g. Book the band you just heard" value="${s.better_hook.replace(/"/g,"&quot;")}"></div>
+        <div class="row"><label>Verdict<small>and rank (1 = best)</small></label>
+          <div class="verdict">${["Keep","Swap","Cut"].map(v=>`<button type="button" data-v="${v}" class="${s.verdict===v?"on":""}">${v}</button>`).join("")}</div>
+          <select data-f="rank"><option value="">Rank…</option>${clips.map((_,i)=>`<option ${String(s.rank)===String(i+1)?"selected":""}>${i+1}</option>`).join("")}</select></div>
+        <div class="tnotes"><button type="button" class="addt">+ Note at current time</button>
+          <ul>${s.timed_notes.map((n,i)=>`<li><span>${fmt(n.t)}</span>${n.text.replace(/</g,"&lt;")}<button type="button" data-del="${i}">remove</button></li>`).join("")}</ul></div>
+        <div class="row"><label>Anything else</label><span></span><textarea data-f="general" placeholder="What would make this a 5?">${s.general.replace(/</g,"&lt;")}</textarea></div>
+        <div class="save"><button type="button" class="savebtn">Save feedback</button><span class="status" data-saved>${s.saved_at?("Saved "+new Date(s.saved_at).toLocaleString("en-GB",{timeZone:"Europe/Lisbon"})):"Not saved yet"}</span></div>
+      </div>`;
+    list.appendChild(el);
+  }
+  if (document.body.dataset.ui === "1") $("#list").classList.add("showui");
+}
+
+document.addEventListener("click", e => {
+  const card = e.target.closest(".card"); if (!card) return; const s = state[card.dataset.id];
+  const st = e.target.closest(".stars button");
+  if (st) { const k = st.parentElement.dataset.k, n = +st.dataset.n; s.scores[k] = (s.scores[k] === n ? 0 : n); [...st.parentElement.children].forEach(b => b.classList.toggle("on", +b.dataset.n <= s.scores[k])); dirty(card); return; }
+  const chip = e.target.closest(".chip");
+  if (chip) { const t = chip.dataset.tag; s.tags = s.tags.includes(t) ? s.tags.filter(x=>x!==t) : [...s.tags, t]; chip.classList.toggle("on"); dirty(card); return; }
+  const v = e.target.closest(".verdict button");
+  if (v) { s.verdict = s.verdict === v.dataset.v ? "" : v.dataset.v; [...v.parentElement.children].forEach(b => b.classList.toggle("on", b.dataset.v === s.verdict)); dirty(card); return; }
+  if (e.target.closest(".addt")) { const vid = $("video", card); vid.pause(); const text = prompt(`Note at ${fmt(vid.currentTime)}:`); if (text) { s.timed_notes.push({t:+vid.currentTime.toFixed(1), text}); s.timed_notes.sort((a,b)=>a.t-b.t); syncFields(card); render(); dirty($(`.card[data-id="${card.dataset.id}"]`)); } return; }
+  const del = e.target.closest("[data-del]");
+  if (del) { syncFields(card); s.timed_notes.splice(+del.dataset.del, 1); render(); dirty($(`.card[data-id="${card.dataset.id}"]`)); return; }
+  if (e.target.closest(".savebtn")) save(card);
+});
+document.addEventListener("input", e => { const card = e.target.closest(".card"); if (card) dirty(card); });
+function dirty(card){ $("[data-saved]", card).textContent = "Unsaved changes"; }
+function syncFields(card){
+  const s = state[card.dataset.id];
+  card.querySelectorAll("[data-note]").forEach(i => s.notes[i.dataset.note] = i.value.trim());
+  card.querySelectorAll("[data-f]").forEach(i => s[i.dataset.f] = i.value.trim());
+}
+async function save(card){
+  syncFields(card); const s = state[card.dataset.id]; const out = $("[data-saved]", card); out.textContent = "Saving…";
+  try {
+    const r = await fetch("/api/feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({...s, saved_at:undefined})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status);
+    s.saved_at = j.saved_at; out.textContent = "Saved " + new Date(j.saved_at).toLocaleString("en-GB",{timeZone:"Europe/Lisbon"});
+  } catch (err) { out.textContent = "Not saved: " + err.message + " (is the review server running?)"; }
+}
+async function load(){
+  clips.forEach(c => state[c.id] = blank(c));
+  try { const r = await fetch("/api/feedback?batch="+encodeURIComponent(BATCH)); const saved = await r.json(); let n = 0;
+    for (const c of clips) if (saved[c.id]) { state[c.id] = {...blank(c), ...saved[c.id]}; n++; }
+    $("#status").textContent = n ? `Loaded saved feedback for ${n} clip(s).` : "No feedback saved yet.";
+  } catch { $("#status").textContent = "Couldn't reach the review server, so saving won't work."; }
+  render();
+}
+const vids = () => [...document.querySelectorAll("video")];
+$("#playall").onclick = () => vids().forEach(v => { v.muted = true; v.currentTime = 0; v.play(); });
+$("#pause").onclick = () => vids().forEach(v => v.pause());
+$("#ui").onclick = () => { $("#list").classList.toggle("showui"); document.body.dataset.ui = $("#list").classList.contains("showui") ? "1" : "0"; };
+load();
+</script>
+</body>
+</html>

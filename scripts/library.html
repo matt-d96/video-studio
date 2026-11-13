@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Content Library</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--muted:#6b6a65;--line:#e3e1dc;--accent:#c4512b;--chip:#efece6}
+@media (prefers-color-scheme:dark){:root{--bg:#151514;--card:#1f1f1d;--ink:#eceae4;--muted:#9a978f;--line:#33322f;--accent:#e2774f;--chip:#2a2927}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 16px}
+h1{font-size:18px;margin:0 0 8px}h1 small{color:var(--muted);font-weight:400;font-size:13px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+select,input,textarea,button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+input[type=search]{min-width:200px;flex:1}button{cursor:pointer}button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wrap{display:flex;align-items:flex-start}
+nav{width:250px;flex:none;position:sticky;top:96px;max-height:calc(100vh - 96px);overflow:auto;padding:12px 8px 40px 16px;font-size:13px}
+nav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 4px}
+nav .dir{cursor:pointer;padding:4px 6px;border-radius:6px;display:flex;justify-content:space-between;gap:6px;white-space:nowrap}
+nav .dir span:first-child{overflow:hidden;text-overflow:ellipsis}nav .dir:hover{background:var(--chip)}nav .dir.on{background:var(--ink);color:var(--bg)}
+nav .n{opacity:.65;font-size:12px}
+.picked{outline:2px solid #15803d}.pickbadge{background:#15803d;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px}
+.io{font-family:ui-monospace,monospace;font-size:12px}
+@media (max-width:760px){.wrap{display:block}nav{position:static;width:auto;max-height:none}}
+main{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
+.card:hover{border-color:var(--accent)}.card.sel{outline:2px solid var(--accent)}
+.thumb{aspect-ratio:1/1;background:var(--chip);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.meta{padding:7px 8px;font-size:12px}.name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row{color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
+.chip{background:var(--chip);border-radius:10px;padding:1px 7px;font-size:11px;color:var(--ink)}
+.stars{color:var(--accent)}
+aside{position:fixed;right:0;top:0;bottom:0;width:min(420px,100%);background:var(--card);border-left:1px solid var(--line);padding:16px;overflow:auto;transform:translateX(100%);transition:.15s;z-index:10}
+aside.open{transform:none}aside video,aside img{width:100%;max-height:52vh;background:#000;border-radius:6px}
+aside label{display:block;margin:10px 0 3px;color:var(--muted);font-size:12px}aside textarea{width:100%;min-height:70px}aside input,aside select{width:100%}
+.rate button{padding:4px 9px}footer{padding:8px 16px 40px;color:var(--muted);font-size:12px}
+.saved{color:var(--accent);font-size:12px;margin-left:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Content Library <small id="sub"></small></h1>
+  <div class="bar">
+    <input type="search" id="q" placeholder="Search names, folders, tags, notes">
+    <select id="fType"><option value="">All types</option><option>video</option><option>photo</option><option>audio</option></select>
+    <select id="fCat"><option value="">All categories</option></select>
+    <select id="fStage"><option value="">Any stage</option><option>raw</option><option>edited</option><option>ready</option></select>
+    <select id="fOri"><option value="">Any shape</option><option>vertical</option><option>horizontal</option><option>square</option></select>
+    <select id="fSrc"><option value="">All sources</option><option>local</option><option>drive</option><option>dropbox</option></select>
+    <select id="sort"><option value="date">Newest</option><option value="rating">Rating</option><option value="duration">Longest</option><option value="name">Name</option></select>
+    <button id="unrated">Unrated only</button>
+    <input id="set" placeholder="Pick set, e.g. 2026-11-12_promo-v5" title="Clips you pick go into this set" style="min-width:230px">
+    <button id="onlyPicked">Picked only</button>
+  </div>
+</header>
+<div class="wrap"><nav id="tree"></nav><main id="grid"></main></div>
+<footer id="foot"></footer>
+<aside id="panel"></aside>
+<script>
+let D={items:[],excluded:[],categories:[]},sel=null,unrated=false,dir="",onlyPicked=false,P={};
+let $set0='';try{$set0=localStorage.getItem('vs-set')||''}catch(e){}
+const curSet=()=>document.getElementById('set').value.trim();
+const isPicked=i=>{const s=curSet();return !!(s&&P[s]&&P[s][i.id]&&P[s][i.id].pick)};
+const fmtT=t=>t==null?'–':Math.floor(t/60)+':'+String((t%60).toFixed(1)).padStart(4,'0');
+const dirOf=i=>(i.source=='local'?(i.root||'').split('/').pop():i.source)+'/'+(i.folder||'');const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function load(){D=await (await fetch('/api/index')).json();P=await (await fetch('/api/picks')).json();$('set').value=$set0;
+  $('title').firstChild.textContent=D.project+' ';$('sub').textContent=`scanned ${D.scanned_at.replace('T',' ')}`;
+  const cats=[...new Set([...D.categories,...D.items.map(i=>i.category).filter(Boolean)])];
+  $('fCat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join('');render();}
+function rows(){const q=$('q').value.toLowerCase();let r=D.items.filter(i=>
+  (!$('fType').value||i.type==$('fType').value)&&(!$('fCat').value||i.category==$('fCat').value)&&
+  (!$('fStage').value||i.stage==$('fStage').value)&&(!$('fOri').value||i.orientation==$('fOri').value)&&
+  (!$('fSrc').value||i.source==$('fSrc').value)&&(!unrated||!i.rating)&&(!dir||dirOf(i)==dir||dirOf(i).startsWith(dir+'/'))&&(!onlyPicked||isPicked(i))&&
+  (!q||(i.name+' '+(i.folder||'')+' '+(i.tags||[]).join(' ')+' '+(i.notes||'')).toLowerCase().includes(q)));
+  const s=$('sort').value,k={date:i=>i.date||'',rating:i=>i.rating||0,duration:i=>i.duration||0,name:i=>i.name.toLowerCase()}[s];
+  r.sort((a,b)=>s=='name'?(k(a)<k(b)?-1:1):(k(a)<k(b)?1:k(a)>k(b)?-1:0));return r;}
+function tree(){const c={};D.items.forEach(i=>{const parts=dirOf(i).replace(/\/$/,'').split('/');for(let k=1;k<=parts.length;k++){const p=parts.slice(0,k).join('/');c[p]=(c[p]||0)+1}});
+  const keys=Object.keys(c).sort();const s=curSet();const np=s&&P[s]?Object.values(P[s]).filter(x=>x.pick).length:0;
+  $('tree').innerHTML=`<div class="grp">Folders</div><div class="dir ${dir==''?'on':''}" data-d=""><span>All</span><span class="n">${D.items.length}</span></div>`+
+   keys.map(k=>{const depth=k.split('/').length-1;return `<div class="dir ${dir==k?'on':''}" data-d="${esc(k)}" style="padding-left:${6+depth*12}px" title="${esc(k)}"><span>${depth?'':'📁 '}${esc(k.split('/').pop())}</span><span class="n">${c[k]}</span></div>`}).join('')+
+   `<div class="grp">Pick sets</div>`+Object.keys(P).sort().reverse().map(k=>`<div class="dir ${k==s?'on':''}" data-set="${esc(k)}"><span>⭐ ${esc(k)}</span><span class="n">${Object.values(P[k]).filter(x=>x.pick).length}</span></div>`).join('')+(Object.keys(P).length?'':'<div class="n" style="padding:4px 6px">Type a set name above, then pick clips.</div>');
+  document.querySelectorAll('#tree .dir[data-d]').forEach(e=>e.onclick=()=>{dir=e.dataset.d;render()});
+  document.querySelectorAll('#tree .dir[data-set]').forEach(e=>e.onclick=()=>{$('set').value=e.dataset.set;saveSet();onlyPicked=true;$('onlyPicked').classList.add('on');render()});}
+function saveSet(){try{localStorage.setItem('vs-set',curSet())}catch(e){}}
+function render(){tree();const r=rows();$('grid').innerHTML=r.map(i=>`<div class="card ${sel==i.id?'sel':''} ${isPicked(i)?'picked':''}" data-id="${i.id}">
+  <div class="thumb">${i.thumb?`<img loading="lazy" src="/thumb/${i.id}.jpg">`:esc(i.source=='local'?i.type:i.source+' · '+i.type)}</div>
+  <div class="meta"><div class="name" title="${esc(i.name)}">${esc(i.name)}</div>
+  <div class="row"><span class="chip">${esc(i.category||'uncategorised')}</span>${i.duration?`<span>${Math.round(i.duration)}s</span>`:''}<span>${esc(i.orientation)}</span></div>
+  <div class="row"><span>${esc(i.date||'')}</span><span>${esc(i.stage||'')}</span><span class="stars">${'★'.repeat(i.rating||0)}</span>${isPicked(i)?'<span class="pickbadge">picked</span>':''}</div></div></div>`).join('');
+  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>open(c.dataset.id));
+  $('foot').innerHTML=`${r.length} of ${D.items.length} shown · <b>${D.excluded.length} hidden</b> because they were posted in the last ${D.exclude_posted_days} days`+
+   (D.excluded.length?`<details><summary>which ones</summary>${D.excluded.map(x=>`${esc(x.posted)} · ${esc(x.name)}`).join('<br>')}</details>`:'');}
+function open(id){sel=id;const i=D.items.find(x=>x.id==id);render();
+  const media=i.source!='local'?`<p><a href="${esc(i.url||'#')}" target="_blank" rel="noopener">Open in ${esc(i.source)}</a> (remote: ask Claude to bring it into the inbox to edit)</p>`:
+    i.type=='video'?`<video src="/file/${i.id}" controls preload="metadata"></video>`:i.type=='photo'?`<img src="/file/${i.id}">`:`<audio src="/file/${i.id}" controls></audio>`;
+  $('panel').innerHTML=`<button onclick="closeP()" style="float:right">Close</button><h3 style="margin:0 0 8px;word-break:break-all">${esc(i.name)}</h3>${media}
+  <div class="row" style="margin:8px 0">id <code>${i.id}</code> · ${esc(i.source)} · ${esc(i.folder||'')} · ${i.width?i.width+'×'+i.height:''} ${i.duration?'· '+i.duration+'s':''}</div>
+  ${pickUI(i)}
+  <label>Category</label><select id="eCat">${[...new Set([...D.categories,i.category].filter(Boolean))].map(c=>`<option ${c==i.category?'selected':''}>${esc(c)}</option>`).join('')}<option value="__new">+ new category…</option></select>
+  <label>Tags (comma separated)</label><input id="eTags" value="${esc((i.tags||[]).join(', '))}">
+  <label>Rating</label><div class="rate">${[1,2,3,4,5].map(n=>`<button class="${(i.rating||0)>=n?'on':''}" onclick="rate(${n})">${n}</button>`).join(' ')} <button onclick="rate(0)">clear</button></div>
+  <label>Notes</label><textarea id="eNotes">${esc(i.notes||'')}</textarea>
+  <p><button class="on" onclick="save()">Save</button><span class="saved" id="ok"></span></p>`;
+  $('eCat').onchange=e=>{if(e.target.value=='__new'){const n=prompt('New category');if(n){e.target.insertAdjacentHTML('afterbegin',`<option selected>${esc(n)}</option>`);}}};
+  $('panel').classList.add('open');}
+function pickUI(i){const s=curSet(),p=(s&&P[s]&&P[s][i.id])||{};
+  if(!s)return `<p class="row">Type a pick set name at the top to pick this clip.</p>`;
+  return `<label>Pick set: ${esc(s)}</label><div class="row" style="align-items:center"><button class="${p.pick?'on':''}" onclick="pk(${!p.pick})">${p.pick?'✓ Picked':'Pick'}</button>
+   ${i.source=='local'&&i.type=='video'?`<button onclick="mk('in')">Set in</button><button onclick="mk('out')">Set out</button>`:''}<span class="io">${fmtT(p.in)} → ${fmtT(p.out)}</span></div>
+   <input id="pNote" placeholder="Pick note (optional)" value="${esc(p.note||'')}" onchange="pk(true,{note:this.value})" style="margin-top:6px">`;}
+async function pk(on,extra={}){const s=curSet();if(!s)return;const r=await (await fetch('/api/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:sel,set:s,pick:on,...extra})})).json();
+  if(r.ok){P[s]=P[s]||{};P[s][sel]=r;const v=document.querySelector('aside video');const t=v?v.currentTime:0;open(sel);const v2=document.querySelector('aside video');if(v2&&t)v2.currentTime=t;}}
+function mk(w){const v=document.querySelector('aside video');if(v)pk(true,{[w]:+v.currentTime.toFixed(2)});}
+function closeP(){$('panel').classList.remove('open');sel=null;render();}
+let pendingRating=undefined;function rate(n){pendingRating=n;document.querySelectorAll('.rate button').forEach((b,k)=>{if(k<5)b.className=(k<n?'on':'')});}
+async function save(){const i=D.items.find(x=>x.id==sel);const body={id:sel,category:$('eCat').value,tags:$('eTags').value.split(','),notes:$('eNotes').value};
+  if(pendingRating!==undefined)body.rating=pendingRating;const r=await (await fetch('/api/tag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  if(r.ok){Object.assign(i,{category:body.category,tags:(r.tags||[]),notes:body.notes});if(pendingRating!==undefined)i.rating=pendingRating||null;pendingRating=undefined;$('ok').textContent='Saved';render();}}
+['q','fType','fCat','fStage','fOri','fSrc','sort'].forEach(id=>$(id).addEventListener('input',render));
+$('unrated').onclick=e=>{unrated=!unrated;e.target.classList.toggle('on',unrated);render();};
+$('onlyPicked').onclick=e=>{onlyPicked=!onlyPicked;e.target.classList.toggle('on',onlyPicked);render();};
+$('set').addEventListener('change',()=>{saveSet();render();if(sel)open(sel);});
+document.addEventListener('keydown',e=>{if(e.key=='Escape')closeP();});load();
+</script>
+</body>
+</html>

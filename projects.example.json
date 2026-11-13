@@ -1,0 +1,51 @@
+{
+  "_about": "Copy to projects.json and fill in. One entry per client project. See skill/video-studio/SKILL.md (setup).",
+  "exclude_posted_days": 30,
+  "projects": {
+    "example": {
+      "name": "Example Client",
+      "project_dir": "/path/to/Client Project",
+      "public_name": "an anonymised description for anything public",
+      "local_folders": [
+        "/path/to/Video Studio/clients/example/inbox",
+        "/path/to/Video Studio/clients/example/exports"
+      ],
+      "local_skip": [
+        "_thumbs",
+        "node_modules",
+        ".venv"
+      ],
+      "drive_folders": [
+        {
+          "id": "<drive folder id>",
+          "name": "Raw",
+          "stage": "raw"
+        }
+      ],
+      "dropbox_folders": [],
+      "posted_logs": [
+        {
+          "type": "markdown_table",
+          "path": "/path/to/Posted Log.md"
+        }
+      ],
+      "categories": [
+        "performance",
+        "crowd",
+        "behind the scenes"
+      ],
+      "category_rules": {
+        "crowd": [
+          "crowd"
+        ]
+      },
+      "grade_default": null,
+      "interviews": {
+        "topics": [],
+        "repeat_weeks": 6,
+        "langs": "en"
+      },
+      "voice": "/path/to/voice.md"
+    }
+  }
+}

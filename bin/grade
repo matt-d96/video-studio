@@ -1,0 +1,7 @@
+#!/bin/zsh
+# grade <in> <out.mp4> <look | --client slug>   colour-grade a whole file (audio copied). Looks: grade list
+# Full CLI: scripts/grade.py -h
+STUDIO="${0:A:h:h}"
+if [[ "${1:-}" == "list" || "${1:-}" == "-h" || $# -lt 3 ]]; then exec "$STUDIO/.venv/bin/python" "$STUDIO/scripts/grade.py" list; fi
+if [[ "$3" == "--client" ]]; then exec "$STUDIO/.venv/bin/python" "$STUDIO/scripts/grade.py" apply "$1" "$2" --client "$4"; fi
+exec "$STUDIO/.venv/bin/python" "$STUDIO/scripts/grade.py" apply "$1" "$2" --look "$3"

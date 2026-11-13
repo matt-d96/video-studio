@@ -1,0 +1,4 @@
+#!/bin/zsh
+# Studio Whisper (Apple Silicon, MLX). Default model: large-v3-turbo. Usage: whisper <file> [--language pt] [--output-format srt]
+STUDIO="${0:A:h:h}"; export PATH="$STUDIO/bin:$PATH"; export HF_HOME="$STUDIO/tools/models"
+exec "$STUDIO/.venv/bin/mlx_whisper" --model mlx-community/whisper-large-v3-turbo "$@"

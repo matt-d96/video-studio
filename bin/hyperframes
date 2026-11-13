@@ -1,0 +1,3 @@
+#!/bin/zsh
+STUDIO="${0:A:h:h}"; export PATH="$STUDIO/bin:$PATH"
+exec "$STUDIO/tools/hyperframes/node_modules/.bin/hyperframes" "$@"

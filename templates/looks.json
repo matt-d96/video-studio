@@ -1,0 +1,35 @@
+{
+ "_about": "Client-neutral colour looks (ffmpeg -vf filter chains), first built on 11 Nov 2026. A client's default look is projects.json 'grade_default'. Apply with bin/grade; compare with scripts/grade.py board. Hooks, text and end cards are never graded.",
+ "looks": {
+  "original": {
+   "label": "Original",
+   "desc": "No grade. Each source keeps its own colour.",
+   "filter": null
+  },
+  "warm_film": {
+   "label": "Warm Film",
+   "desc": "Warm mids and highlights, lifted blacks, light grain. Soft and analog.",
+   "filter": "colorbalance=rs=.10:gs=.02:bs=-.10:rm=.07:bm=-.07:rh=.05:bh=-.08,curves=all='0/0.08 0.5/0.52 1/0.93',eq=saturation=0.88:contrast=1.05,noise=alls=8:allf=t"
+  },
+  "teal_orange": {
+   "label": "Teal Orange",
+   "desc": "Cool shadows, warm skin. Punchy, closest to festival footage.",
+   "filter": "colorbalance=rs=-.08:bs=.08:rh=.08:gh=.02:bh=-.07,eq=saturation=1.08:contrast=1.06"
+  },
+  "sage": {
+   "label": "Sage",
+   "desc": "Muted, with a green-sage tint. Calm.",
+   "filter": "eq=saturation=0.68:contrast=1.04,colorbalance=rs=-.05:gs=.07:bs=-.01:rm=-.04:gm=.05:bm=-.03:rh=.04:gh=.01:bh=-.04,curves=all='0/0.08 0.5/0.52 1/0.93'"
+  },
+  "night_moody": {
+   "label": "Night Moody",
+   "desc": "More contrast, deep blue shadows, vignette. Club feel.",
+   "filter": "eq=contrast=1.15:saturation=0.85:gamma=0.92,colorbalance=rs=-.02:bs=.06:rh=.04,vignette=PI/5"
+  },
+  "mono": {
+   "label": "Mono",
+   "desc": "Black and white, high contrast, grain. Hides colour mismatch between sources best.",
+   "filter": "hue=s=0,eq=contrast=1.18:gamma=0.95,noise=alls=6:allf=t"
+  }
+ }
+}

@@ -1,0 +1,18 @@
+#!/bin/zsh
+# crowd_down <in.mp4> <out.mp4> [vocal_db]
+# Optional env for a harder pass (Matt, 11 Nov 2026, C8 "crowd noise is crazy loud"): OTHER_DB (default -30), GATE_RANGE (default 0.1 = -20 dB), GATE_THRESH (default 0.02).
+# Default for live clips (Matt, 9 Nov 2026: "crowd noise down 30db", asked on 4+ clips).
+# Splits the clip's audio with Demucs htdemucs_6s, turns the leftover 'other' stem (mostly crowd/room) down 30 dB,
+# soft-gates the vocal stem (max -20 dB) to drop crowd chatter between sung phrases, remixes, loudnorm -14, keeps the picture.
+set -eu
+STUDIO="${0:A:h:h}"; FF="$STUDIO/bin/ffmpeg"; in="$1"; out="$2"; vdb="${3:-0}"; odb="${OTHER_DB:--30}"; grange="${GATE_RANGE:-0.1}"; gthr="${GATE_THRESH:-0.02}"
+T=$(mktemp -d); export TORCH_HOME="$STUDIO/tools/models/torch"; export PATH="$STUDIO/bin:$PATH"
+d=$("$STUDIO/bin/ffprobe" -v error -show_entries format=duration -of csv=p=0 "$in")
+$FF -hide_banner -loglevel error -y -i "$in" -vn -ac 2 -ar 44100 "$T/a.wav"
+"$STUDIO/.venv/bin/python" -m demucs -n htdemucs_6s -d mps -o "$T" "$T/a.wav" >/dev/null 2>&1
+S="$T/htdemucs_6s/a"; ins=(); for s in vocals drums bass guitar piano other; do ins+=(-i "$S/$s.wav"); done
+st=$(python3 -c "print(max(0,$d-0.3))")
+$FF -hide_banner -loglevel error -y -i "$in" "${ins[@]}" -filter_complex \
+ "[1:a]agate=threshold=${gthr}:ratio=4:range=${grange}:attack=5:release=250,volume=${vdb}dB[v];[6:a]volume=${odb}dB[o];[v][2:a][3:a][4:a][5:a][o]amix=inputs=6:normalize=0,atrim=0:$d,afade=t=in:d=0.3,afade=t=out:st=$st:d=0.3,loudnorm=I=-14:TP=-1.5:LRA=11[a]" \
+ -map 0:v -map "[a]" -c:v copy -c:a aac -b:a 192k -ar 48000 -dn -map_metadata -1 -movflags +faststart "$out"
+rm -rf "$T"; echo "wrote $out"; "$STUDIO/scripts/release-check" "$out"

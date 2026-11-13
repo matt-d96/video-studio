@@ -1,0 +1,6 @@
+# Core: beat detection, captions (Apple Silicon Whisper), downloads
+numpy==2.4.6
+certifi==2026.10.23
+yt-dlp==2026.10.26
+mlx==0.32.4
+mlx-whisper==0.4.3

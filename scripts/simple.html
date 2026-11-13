@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video Studio</title>
+<style>
+:root{--bg:#121213;--pane:#1b1b1d;--pane2:#242427;--line:#303034;--ink:#ececee;--mute:#8e8e95;--acc:#f2b632;--ok:#3fb27f;--red:#e5484d;--ai:#a78bfa}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--pane2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:#55555c}button:disabled{opacity:.45;cursor:default}
+button.go{background:var(--acc);border-color:var(--acc);color:#1a1a1a;font-weight:600}
+button.ghost{background:none;border-color:transparent;color:var(--mute);padding:4px 8px}button.ghost:hover{color:var(--ink)}
+input{user-select:text}
+/* top */
+#top{flex:none;padding:14px 16px 8px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#sbox{position:relative;width:min(760px,100%)}
+#q{width:100%;height:48px;font-size:17px;padding:0 104px 0 46px;border-radius:14px;background:var(--pane2);border:1px solid #3a3a40;outline:none}
+#q:focus{border-color:var(--acc);box-shadow:0 0 0 3px #f2b63230}
+#sbox .ic{position:absolute;left:16px;top:12px;font-size:19px;color:var(--mute);pointer-events:none}
+#sbox .btns{position:absolute;right:7px;top:7px;display:flex;gap:4px}
+#sbox .btns button{width:38px;height:34px;padding:0;border-radius:10px;font-size:16px;display:flex;align-items:center;justify-content:center}
+#mic.rec{background:var(--red);border-color:var(--red);animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.55}}
+#askb{border-color:#6d5bd0;color:#d9d0ff}
+#chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:980px}
+.chip{border-radius:99px;padding:4px 12px;font-size:13px;background:var(--pane);border:1px solid var(--line)}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#1a1a1a;font-weight:600}
+.chip.t{background:var(--pane2)}.sepv{width:1px;background:var(--line);margin:2px 4px}
+#say{width:min(760px,100%);display:none;gap:8px;align-items:flex-start;background:#1d1b27;border:1px solid #3b3360;border-radius:10px;padding:8px 12px;font-size:13px;user-select:text}
+#say.on{display:flex}#say .tx{flex:1;white-space:pre-wrap}
+/* middle */
+#mid{flex:1;min-height:0;display:flex;gap:0}
+#res{flex:1;min-width:0;overflow:auto;padding:6px 16px 16px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.empty{color:var(--mute);text-align:center;padding:40px 16px;font-size:15px}
+.card{position:relative;border-radius:10px;overflow:hidden;background:var(--pane);border:2px solid transparent;cursor:pointer}
+.card.sel{border-color:var(--acc)}.card.dim{opacity:.55}
+.card .th{aspect-ratio:1/1;background:#0b0b0c;display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:26px}
+.card .th img{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
+.card .nm{padding:5px 8px;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .tg{position:absolute;left:6px;top:6px;background:#000a;border-radius:6px;padding:1px 6px;font-size:11px}
+.card .add{position:absolute;right:6px;bottom:32px;width:32px;height:32px;padding:0;border-radius:50%;font-size:19px;line-height:1;background:#000b;border-color:#fff3;display:none}
+.card:hover .add,.card.in .add{display:block}.card.in .add{background:var(--ok);border-color:var(--ok);color:#fff}
+.card .hv{position:absolute;right:6px;top:6px;font-size:14px;color:var(--red)}
+/* preview */
+#pv{flex:none;width:min(420px,42vw);border-left:1px solid var(--line);background:var(--pane);display:none;flex-direction:column;min-height:0}
+#pv.on{display:flex}
+#pvh{display:flex;align-items:center;gap:6px;padding:8px 10px;font-size:12px;color:var(--mute)}#pvh span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stage{flex:1;min-height:120px;background:#000;display:flex;align-items:center;justify-content:center;position:relative}
+#stage video,#stage img{max-width:100%;max-height:100%;display:block}#stage .msg{color:var(--mute);text-align:center;padding:14px}
+#pvc{padding:10px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row .sp{flex:1}
+.rng{font:12px ui-monospace,Menlo,monospace;color:var(--mute)}
+#looks{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.lk{border:2px solid transparent;border-radius:7px;overflow:hidden;cursor:pointer;background:#0b0b0c;position:relative}
+.lk.on{border-color:var(--acc)}.lk img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.lk b{position:absolute;left:0;right:0;bottom:0;font-size:9px;font-weight:500;background:#000a;padding:1px 3px;text-align:center;white-space:nowrap;overflow:hidden}
+.lbl{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+/* dock */
+#dock{flex:none;border-top:1px solid var(--line);background:var(--pane)}
+#dh{display:flex;align-items:center;gap:8px;padding:8px 12px;overflow-x:auto}
+#dh>*{flex:none}#dh .sp{flex:1}#dh select{background:var(--pane2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;max-width:190px}
+#stat{color:var(--mute);font-size:12px}
+#db{padding:0 12px 10px;display:flex;flex-direction:column;gap:8px}#dock.shut #db{display:none}
+#strip{display:flex;gap:6px;overflow-x:auto;min-height:92px;align-items:stretch;padding:2px;border-radius:10px}
+#strip.hot{outline:1px dashed var(--acc)}
+.it{flex:none;width:72px;position:relative;border-radius:8px;overflow:hidden;background:#0b0b0c;border:2px solid transparent;cursor:grab}
+.it.sel{border-color:var(--acc)}.it.drag{opacity:.35}
+.it img{width:100%;height:68px;object-fit:cover;display:block;pointer-events:none}
+.it .d{font-size:11px;text-align:center;padding:1px 0 2px;color:var(--mute);pointer-events:none}
+.it .x{position:absolute;right:2px;top:2px;width:20px;height:20px;padding:0;border-radius:50%;font-size:12px;line-height:1;background:#000c;border-color:#fff3;display:none}
+.it:hover .x{display:block}
+.ins{flex:none;width:3px;border-radius:2px;background:var(--acc)}
+#strip .hint{color:var(--mute);align-self:center;padding:0 12px}
+#mrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+#wave{flex:1;min-width:160px;height:34px;border-radius:8px;background:#163a2b;border:1px solid #2f9e6b;position:relative;overflow:hidden;cursor:ew-resize}
+#wave i{position:absolute;top:0;bottom:0;background-size:100% 100%;background-repeat:no-repeat;pointer-events:none;opacity:.9}
+#wave b{position:absolute;left:8px;top:8px;font-weight:500;font-size:12px;text-shadow:0 1px 3px #000;pointer-events:none;white-space:nowrap}
+label.ck{display:flex;gap:6px;align-items:center;color:var(--mute);font-size:12px;cursor:pointer}
+/* overlays */
+.pop{position:fixed;inset:0;background:#000a;z-index:50;display:none;align-items:center;justify-content:center;padding:16px}.pop.on{display:flex}
+.box{background:var(--pane);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:12px;max-height:92vh;overflow:auto}
+.box h3{margin:0;font-size:16px}.box input[type=text]{height:40px;border-radius:10px;background:var(--pane2);border:1px solid var(--line);padding:0 12px;width:100%}
+.box video{width:100%;max-height:60vh;background:#000;border-radius:10px}.box .sm{color:var(--mute);font-size:12px;user-select:text;word-break:break-all}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#000e;border:1px solid var(--line);padding:9px 16px;border-radius:10px;display:none;z-index:90;max-width:86vw;text-align:center}
+#dropz{position:fixed;inset:10px;border:3px dashed var(--acc);border-radius:18px;background:#000b;z-index:80;display:none;align-items:center;justify-content:center;font-size:20px;pointer-events:none}#dropz.on{display:flex}
+#bar{height:3px;background:var(--acc);width:0;transition:width .3s}
+.ghostdrag{position:fixed;z-index:95;pointer-events:none;width:60px;height:60px;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px #000a;opacity:.9}.ghostdrag img{width:100%;height:100%;object-fit:cover}
+@media (max-width:760px){body{overflow:auto;height:auto}#mid{flex-direction:column}#pv{width:100%;border-left:0;border-top:1px solid var(--line)}#stage{min-height:240px}#looks{grid-template-columns:repeat(3,1fr)}#res{overflow:visible}}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="top">
+  <div id="sbox"><span class="ic">⌕</span><input id="q" placeholder="Search: keys, crowd, guitar, portrait…" autocomplete="off" spellcheck="false">
+    <div class="btns"><button id="mic" title="Say what you're looking for">🎤</button><button id="askb" title="Ask Claude to find it or build the edit">✦</button></div></div>
+  <div id="say"><span>✦</span><div class="tx" id="sayTx"></div><button class="ghost" id="sayUndo" style="display:none">Undo</button><button class="ghost" id="sayX">✕</button></div>
+  <div id="chips"></div>
+</div>
+<div id="mid">
+  <div id="res"><div id="grid"></div></div>
+  <div id="pv">
+    <div id="pvh"><span id="pvName"></span><button class="ghost" id="fav" title="Favourite">♡</button><button class="ghost" id="pvX" title="Close">✕</button></div>
+    <div id="stage"></div>
+    <div id="pvc">
+      <div class="row" id="trim"></div>
+      <div><div class="lbl" style="margin-bottom:5px">Look for the whole video</div><div id="looks"></div></div>
+    </div>
+  </div>
+</div>
+<div id="dock">
+  <div id="dh">
+    <button class="ghost" id="fold" title="Show or hide your edit">▾</button><b>Your edit</b>
+    <select id="set" title="Switch edit"></select><button class="ghost" id="newSet" title="Start a new edit">＋ New</button>
+    <span id="stat"></span><span class="sp"></span>
+    <button id="bMusic">♪ Music</button>
+    <button id="bBeat" title="Cut every shot on the beat of the music">Cut to the beat</button>
+    <button id="bPlay">▶ Preview</button>
+    <button class="go" id="bMake">Make video</button>
+  </div>
+  <div id="db">
+    <div id="strip"></div>
+    <div id="mrow"></div>
+  </div>
+</div>
+
+<div class="pop" id="mpop"><div class="box"><h3>Add music</h3>
+  <input type="text" id="murl" placeholder="Paste a link: YouTube, Spotify, SoundCloud, Bandcamp…">
+  <div class="row"><button class="go" id="mget">Get song</button><button id="mfile">Choose a file</button><span class="sp"></span><button class="ghost" id="mx">Cancel</button></div>
+  <div class="sm" id="mnote">The song is used to cut on the beat and to preview. It's left out of the finished file unless you tick “I have the rights”, so you can add it in Instagram or TikTok.</div></div></div>
+<div class="pop" id="rpop"><div class="box" style="width:min(460px,100%)"><h3 id="rT">Your video</h3><video id="rV" controls playsinline></video><div class="sm" id="rN"></div>
+  <div class="row"><span class="sp"></span><button id="rX">Close</button></div></div></div>
+<div id="dropz">Drop to add to your library</div>
+<div id="toast"></div>
+<input type="file" id="fileIn" multiple style="display:none">
+<audio id="mus" preload="auto"></audio>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mmss=t=>{t=Math.max(0,t||0);return Math.floor(t/60)+":"+String((t%60).toFixed(1)).padStart(4,"0")};
+const store={get(k,d){try{return localStorage.getItem(k)??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let D={items:[],excluded:[]},P={},S={},LOOKS={looks:{},default:null},byId={};
+let cur="",sel=null,ftype="",ftag="",ffav=false,aiIds=null,V=null,playing=null,undo=null,pend={},snapT=null,busy=0;
+function toast(m,ms=3000){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",ms)}
+function load(n){busy=Math.max(0,busy+n);$("bar").style.width=busy?"70%":"0"}
+async function api(path,body){load(1);try{const r=await fetch(path,body!==undefined?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{});
+  let j;try{j=await r.json()}catch(e){throw new Error("The studio isn't answering ("+r.status+")")}if(!r.ok)throw new Error(j.error||r.status);return j}finally{load(-1)}}
+const safe=f=>async(...a)=>{try{return await f(...a)}catch(e){console.error(e);toast(e.message||String(e),5000)}};
+const today=()=>new Date().toISOString().slice(0,10);
+
+const start=safe(async()=>{
+  [D,P,S,LOOKS]=await Promise.all([api("/api/index"),api("/api/picks"),api("/api/sets"),api("/api/looks")]);
+  reindex();document.title="Video Studio · "+D.project;
+  const names=Object.keys(S),saved=store.get("vs-set:"+D.project,"");cur=names.includes(saved)?saved:(names.sort().reverse()[0]||"");
+  if(store.get("vs-dock","open")=="shut")$("dock").classList.add("shut");
+  chips();results();dock();tagStatus();
+});
+const HELPER=/release-check|\/grades\/|clip-picker|\/posters\/|\/proxies\//i;
+function reindex(){D.items=D.items.filter(i=>!HELPER.test((i.path||"")+"/"+(i.name||"")));byId={};for(const i of D.items){byId[i.id]=i;const a=i.auto||{};
+  i._t=[i.name,i.folder,i.category,(i.tags||[]).join(" "),i.notes,i.type,(a.instruments||[]).join(" "),(a.subjects||[]).join(" "),a.setting,a.desc].join(" ").toLowerCase()}}
+// ---------- search ----------
+function chips(){const ci={},cs={};for(const i of D.items){const a=i.auto;if(!a)continue;for(const t of a.instruments||[])ci[t]=(ci[t]||0)+1;for(const t of a.subjects||[])cs[t]=(cs[t]||0)+1}
+  const top=(c,n,skip=[])=>Object.entries(c).filter(x=>!skip.includes(x[0])&&x[1]>1).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>x[0]);
+  const tags=[...top(ci,8,["microphone"]),...top(cs,8,["text or screenshot","poster or graphic"])];
+  const T=[["","All"],["video","Video"],["photo","Photo"],["audio","Music"]];
+  $("chips").innerHTML=T.map(([k,l])=>`<button class="chip t ${ftype==k&&(k||(!ftag&&!ffav&&!$("q").value&&shown()))?"on":""}" data-type="${k}">${l}</button>`).join("")+
+   `<button class="chip t ${ffav?"on":""}" data-fav="1">♥</button>`+(tags.length?`<span class="sepv"></span>`:"")+
+   tags.map(t=>`<button class="chip ${ftag==t?"on":""}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")+`<span id="tagb"></span>`;
+  $("chips").querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{aiIds=null;if(b.dataset.type==""){ftype="";ftag="";ffav=false;$("q").value="";showAll=!showAll}else{ftype=ftype==b.dataset.type?"":b.dataset.type;showAll=false}chips();results()});
+  $("chips").querySelector("[data-fav]").onclick=()=>{aiIds=null;ffav=!ffav;chips();results()};
+  $("chips").querySelectorAll("[data-tag]").forEach(b=>b.onclick=()=>{aiIds=null;ftag=ftag==b.dataset.tag?"":b.dataset.tag;chips();results()});tagBanner()}
+let showAll=false;const shown=()=>showAll;
+function matches(){if(aiIds)return aiIds.map(id=>byId[id]).filter(Boolean);
+  const words=$("q").value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if(!words.length&&!ftype&&!ftag&&!ffav&&!showAll)return null;
+  let r=D.items.filter(i=>(!ftype||i.type==ftype)&&(!ffav||(i.rating||0)>=4)&&(!ftag||i._t.includes(ftag))&&words.every(w=>i._t.includes(w)));
+  r.sort((a,b)=>((b.rating||0)>=4)-((a.rating||0)>=4)||(a.source!="local")-(b.source!="local")||(a.date<b.date?1:-1));return r}
+function inEdit(id){return !!(cur&&P[cur]&&P[cur][id]&&P[cur][id].pick)}
+function results(){const r=matches(),g=$("grid");
+  if(r===null){g.innerHTML=`<div class="empty" style="grid-column:1/-1">Search for what you need, tap a tag, or press 🎤 and say it.</div>`;return}
+  if(!r.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1">Nothing matches. Try another word, or press ✦ to ask Claude.</div>`;return}
+  const MAX=90;g.innerHTML=r.slice(0,MAX).map(i=>`<div class="card ${sel==i.id?"sel":""} ${inEdit(i.id)?"in":""} ${i.source!="local"?"dim":""}" data-id="${i.id}" title="${esc(i.name)}${i.auto?" · "+esc(i.auto.desc||""):""}">
+   <div class="th">${i.thumb?`<img loading="lazy" src="/thumb/${i.id}.jpg" alt="">`:(i.type=="audio"?"♪":i.source!="local"?"☁":"▢")}</div>
+   <span class="tg">${i.type=="video"?(i.duration?mmss(i.duration).replace(/\.\d$/,""):"video"):i.type=="audio"?"♪ music":"photo"}${i.source!="local"?" · "+esc(i.source):""}</span>
+   ${(i.rating||0)>=4?'<span class="hv">♥</span>':""}
+   ${i.source=="local"?`<button class="add" data-add="${i.id}" title="${inEdit(i.id)?"In your edit":i.type=="audio"?"Use as the music":"Add to your edit"}">${inEdit(i.id)?"✓":"+"}</button>`:""}
+   <div class="nm">${esc(i.auto&&i.auto.desc?i.auto.desc:i.name)}</div></div>`).join("")+(r.length>MAX?`<div class="empty" style="grid-column:1/-1;padding:14px">${r.length-MAX} more. Add a word to narrow it down.</div>`:"");
+  g.querySelectorAll(".card").forEach(c=>c.onclick=e=>{const a=e.target.closest("[data-add]");if(a){inEdit(a.dataset.add)?remove(a.dataset.add):add(a.dataset.add)}else open(c.dataset.id)})}
+let qT=null;$("q").oninput=()=>{aiIds=null;showAll=false;clearTimeout(qT);qT=setTimeout(()=>{chips();results()},90)};
+$("q").onkeydown=e=>{if(e.key=="Enter"){const r=matches();if($("q").value.trim()&&(!r||!r.length||e.metaKey))ask()}if(e.key=="Escape"){$("q").value="";aiIds=null;chips();results();$("q").blur()}};
+// ---------- auto-tagging ----------
+let TG=null;
+async function tagStatus(){try{TG=await api("/api/autotag")}catch(e){return}tagBanner();if(TG.state=="running")setTimeout(async()=>{await tagStatus();if(TG.done%30<10){const d=await api("/api/index");for(const i of d.items)if(byId[i.id]&&i.auto&&!byId[i.id].auto){byId[i.id].auto=i.auto;const a=i.auto;byId[i.id]._t+=" "+[(a.instruments||[]).join(" "),(a.subjects||[]).join(" "),a.setting,a.desc].join(" ").toLowerCase()}chips()}},4000);
+  else if(TG.state=="done"&&!tagStatus.done){tagStatus.done=1;D=await api("/api/index");reindex();chips();results()}}
+function tagBanner(){const b=$("tagb");if(!b||!TG)return;const left=TG.taggable-TG.tagged;
+  if(TG.state=="running")b.innerHTML=`<span class="chip" style="border-style:dashed">Looking at your clips… ${TG.tagged}/${TG.taggable}</span>`;
+  else if(left>5)b.innerHTML=`<button class="chip" id="tagGo" style="border-style:dashed;color:var(--ai)">✦ Tag ${left} clips so search knows what's in them</button>`;else b.innerHTML="";
+  if($("tagGo"))$("tagGo").onclick=safe(async()=>{await api("/api/autotag",{start:1});tagStatus.done=0;tagStatus()})}
+// ---------- preview ----------
+function open(id){const i=byId[id];if(!i)return;stopEdit();sel=id;$("pv").classList.add("on");$("pvName").textContent=i.auto&&i.auto.desc?i.auto.desc:i.name;$("pvName").title=i.name;
+  document.querySelectorAll(".card").forEach(c=>c.classList.toggle("sel",c.dataset.id==id));document.querySelectorAll(".it").forEach(c=>c.classList.toggle("sel",c.dataset.id==id));
+  const st=$("stage");st.innerHTML="";V=null;
+  if(i.source!="local")st.innerHTML=`<div class="msg">This one is in ${esc(i.source)}.<br><a href="${esc(i.url||"#")}" target="_blank" rel="noopener" style="color:var(--acc)">Open it there</a><br><br>Ask Claude to bring it in before you can cut it.</div>`;
+  else if(i.type=="photo")st.innerHTML=`<img src="${i.play}" alt="">`;
+  else{V=document.createElement(i.type=="audio"?"audio":"video");V.dataset.id=id;V.controls=true;V.playsInline=true;V.preload="auto";V.src=i.play;st.appendChild(V);
+    if(i.play.startsWith("/proxy"))st.insertAdjacentHTML("beforeend",`<div class="msg" id="pmsg" style="position:absolute">Getting this clip ready…</div>`);
+    V.onloadeddata=()=>{const m=$("pmsg");if(m)m.remove();const p=range(id);if(p.in)V.currentTime=p.in};
+    V.onerror=()=>{if(V&&V.dataset.id==id){const m=$("pmsg");if(m)m.remove();st.insertAdjacentHTML("beforeend",`<div class="msg" style="position:absolute">This file won't play here. It can still go in your edit.</div>`)}}}
+  fav();trim();looks()}
+$("pvX").onclick=()=>{stopEdit();$("pv").classList.remove("on");sel=null;$("stage").innerHTML="";V=null;document.querySelectorAll(".sel").forEach(c=>c.classList.remove("sel"))};
+function fav(){const i=byId[sel];$("fav").textContent=(i.rating||0)>=4?"♥":"♡";$("fav").style.color=(i.rating||0)>=4?"var(--red)":""}
+$("fav").onclick=safe(async()=>{const i=byId[sel];if(!i)return;const n=(i.rating||0)>=4?0:5;await api("/api/tag",{id:i.id,rating:n});i.rating=n||null;fav();results()});
+function range(id){const p=(cur&&P[cur]&&P[cur][id]&&P[cur][id].pick)?P[cur][id]:(pend[id]||{});return {in:p.in??null,out:p.out??null}}
+function trim(){const i=byId[sel],el=$("trim");if(!i||i.source!="local"){el.innerHTML="";return}const r=range(i.id),into=inEdit(i.id);
+  if(i.type=="audio"){el.innerHTML=`<button class="go" id="tMusic">♪ Use as the music</button>`;$("tMusic").onclick=()=>setMusic(i.id,V?V.currentTime:0);return}
+  if(i.type=="photo"){const d=r.out||2.5;el.innerHTML=`<span class="lbl">Show for</span>${[1.5,2.5,4].map(s=>`<button class="${d==s?"go":""}" data-d="${s}">${s}s</button>`).join("")}<span class="sp"></span><button class="${into?"":"go"}" id="tAdd">${into?"✓ In your edit":"+ Add"}</button>`;
+    el.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>setRange(i.id,{in:0,out:+b.dataset.d}));}
+  else{const a=r.in||0,b=r.out;el.innerHTML=`<button id="tIn" title="Use from the moment the player is on">Start here</button><button id="tOut" title="Stop at the moment the player is on">End here</button>
+    <span class="rng">${mmss(a)} → ${b!=null?mmss(b):"auto"}</span><span class="sp"></span><button class="${into?"":"go"}" id="tAdd">${into?"✓ In your edit":"+ Add"}</button>`;
+    $("tIn").onclick=()=>{if(!V)return;const t=+V.currentTime.toFixed(2);const o={in:t};if(r.out!=null&&r.out<=t)o.out="";setRange(i.id,o)};
+    $("tOut").onclick=()=>{if(!V)return;const t=+V.currentTime.toFixed(2);if(t<=(r.in||0)+0.2){toast("Move the player past the start first.");return}setRange(i.id,{out:t})}}
+  $("tAdd").onclick=()=>into?remove(i.id):add(i.id)}
+const setRange=safe(async(id,o)=>{if(inEdit(id)){const r=await api("/api/pick",{id,set:cur,pick:true,...o});P[cur][id]=r;await changed()}
+  else{const p=pend[id]||(pend[id]={});for(const k in o)p[k]=o[k]===""?null:o[k]}trim()});
+function looks(){const i=byId[sel],el=$("looks");if(!i||i.source!="local"||i.type=="audio"){el.parentElement.style.display="none";return}el.parentElement.style.display="";
+  const now=(S[cur]&&S[cur].look)||LOOKS.default||"original",t=V?Math.round((range(i.id).in??1)*10)/10:0;
+  el.innerHTML=Object.entries(LOOKS.looks).map(([k,v])=>`<div class="lk ${k==now?"on":""}" data-k="${k}" title="${esc(v.desc)}"><img loading="lazy" src="/look/${i.id}/${k}.jpg?t=${t}" alt=""><b>${esc(v.label)}</b></div>`).join("");
+  el.querySelectorAll(".lk").forEach(d=>d.onclick=safe(async()=>{await ensureEdit();await api("/api/set",{set:cur,look:d.dataset.k});S[cur].look=d.dataset.k;looks();dock();toast(LOOKS.looks[d.dataset.k].label+" look set for this video",1500)}))}
+// ---------- the edit ----------
+async function ensureEdit(){if(cur)return;await newEdit()}
+async function newEdit(){let n=1;while(S[`${today()}_edit-${n}`])n++;const name=`${today()}_edit-${n}`;await api("/api/set",{set:name,order:[]});cur=name;store.set("vs-set:"+D.project,cur);S=await api("/api/sets");P[cur]=P[cur]||{}}
+$("newSet").onclick=safe(async()=>{stopEdit();await newEdit();dock();results();if(sel){trim();looks()}toast("New edit started",1500)});
+$("set").onchange=e=>{stopEdit();cur=e.target.value;store.set("vs-set:"+D.project,cur);dock();results();if(sel){trim();looks()}};
+const add=safe(async(id,at)=>{const i=byId[id];if(!i||i.source!="local")return;if(i.type=="audio"){await setMusic(id,0);return}
+  await ensureEdit();const p=pend[id]||{},body={pick:true};if(p.in!=null)body.in=p.in;if(p.out!=null)body.out=p.out;if(i.type=="photo"&&body.out==null){body.in=0;body.out=2.5}
+  const r=await api("/api/pick",{id,set:cur,...body});P[cur]=P[cur]||{};P[cur][id]=r;delete pend[id];
+  const order=clips().map(c=>c.id).filter(x=>x!=id);order.splice(at==null?order.length:at,0,id);await api("/api/set",{set:cur,order});
+  $("dock").classList.remove("shut");await changed()});
+const remove=safe(async id=>{if(!cur)return;const r=await api("/api/pick",{id,set:cur,pick:false});P[cur][id]=r;await changed()});
+async function changed(){S=await api("/api/sets");dock();results();if(sel)trim();autosnap()}
+function clips(){const m=S[cur]||{},sn=m.snapped;let t=0;return (m.timeline||[]).map(c=>{const dur=sn&&sn.durs&&sn.durs[c.id]!=null?sn.durs[c.id]:c.dur;const o={...c,dur,start:t};t+=dur;return o})}
+const beatOn=()=>!!(S[cur]&&S[cur].beat!==false);
+function autosnap(){clearTimeout(snapT);const m=S[cur];if(!m||!m.music||!beatOn()||!(m.timeline||[]).length||m.snapped)return;
+  snapT=setTimeout(safe(async()=>{try{await api("/api/snap",{set:cur})}catch(e){toast("Couldn't find the beat: "+e.message,4000);return}S=await api("/api/sets");dock()}),350)}
+function dock(){const names=Object.keys(S).sort().reverse();$("set").innerHTML=names.length?names.map(n=>`<option ${n==cur?"selected":""}>${esc(n)}</option>`).join(""):`<option value="">No edit yet</option>`;
+  $("set").style.display=names.length>1?"":"none";$("fold").textContent=$("dock").classList.contains("shut")?"▸":"▾";
+  const m=S[cur]||{},cs=clips(),total=cs.reduce((a,c)=>a+c.dur,0),mu=m.music&&byId[m.music.id],sn=m.snapped;
+  $("stat").textContent=cs.length?`${cs.length} shot${cs.length>1?"s":""} · ${mmss(total)}${sn&&sn.bpm?" · on the beat ("+Math.round(sn.bpm)+" BPM)":""}${m.look?" · "+(LOOKS.looks[m.look]?.label||m.look):""}`:"";
+  $("strip").innerHTML=cs.length?cs.map(c=>{const i=byId[c.id];return `<div class="it ${sel==c.id?"sel":""}" data-id="${c.id}" title="${esc(i?i.name:"")}">${i&&i.thumb?`<img src="/thumb/${c.id}.jpg" alt="">`:`<div style="height:68px"></div>`}<div class="d">${c.dur.toFixed(1)}s</div><button class="x" data-x="${c.id}" title="Take out">✕</button></div>`}).join(""):`<span class="hint">Press + on a clip or photo to start your edit.</span>`;
+  $("strip").querySelectorAll(".it").forEach(el=>{el.onclick=e=>{if(dragged)return;if(e.target.dataset.x){remove(e.target.dataset.x);return}open(el.dataset.id)};el.onmousedown=e=>{if(!e.target.dataset.x)drag(e,el.dataset.id)}});
+  $("bBeat").className=mu&&beatOn()?"go":"";$("bBeat").textContent=mu&&beatOn()?"✓ On the beat":"Cut to the beat";
+  $("bMusic").textContent=mu?"♪ Change":"♪ Music";$("bPlay").disabled=$("bMake").disabled=!cs.length;
+  if(mu){const st=m.music.start||0,d=mu.duration||60;$("mrow").innerHTML=`<div id="wave" title="Drag to choose where the song starts"><i style="left:${-st/d*100}%;width:${Math.max(100,d/Math.max(total,8)*100)}%;background-image:url(/wave/${mu.id}.png)"></i><b>♪ ${esc(mu.name.replace(/\.[a-z0-9]+$/i,"").replace(/^\d{4}-\d\d-\d\d_/,"").replace(/_/g," "))} · from ${mmss(st)}</b></div>
+    <label class="ck" title="Leave unticked to add the song in Instagram or TikTok instead"><input type="checkbox" id="rights" ${m.rights?"checked":""}> I have the rights: keep the song in the video</label><button class="ghost" id="mdel" title="Remove the music">✕</button>`;
+    $("rights").onchange=safe(async e=>{await api("/api/set",{set:cur,rights:e.target.checked});S[cur].rights=e.target.checked});
+    $("mdel").onclick=safe(async()=>{await api("/api/set",{set:cur,music:null});await changed()});slip($("wave"),st,d,Math.max(total,8))}
+  else $("mrow").innerHTML=""}
+function slip(el,st0,d,span){el.onmousedown=e=>{const x0=e.clientX,w=el.clientWidth,bar=el.querySelector("i"),lb=el.querySelector("b");let st=st0;const perPx=span/w;
+  const mv=ev=>{st=Math.min(Math.max(0,st0-(ev.clientX-x0)*perPx),Math.max(0,d-2));bar.style.left=(-st/span*100)+"%";lb.textContent="♪ starts at "+mmss(st)};
+  const up=safe(async()=>{removeEventListener("mousemove",mv);removeEventListener("mouseup",up);if(Math.abs(st-st0)>0.05){await api("/api/set",{set:cur,music:{id:S[cur].music.id,start:+st.toFixed(2)}});await changed()}});
+  addEventListener("mousemove",mv);addEventListener("mouseup",up)}}
+$("fold").onclick=()=>{const s=$("dock").classList.toggle("shut");store.set("vs-dock",s?"shut":"open");dock()};
+// drag to reorder (mouse events: HTML5 drag-and-drop is unreliable in embedded browsers)
+let dragged=false;
+function drag(e,id){if(e.button!==0)return;const x0=e.clientX,y0=e.clientY;let g=null,idx=null;const strip=$("strip");
+  const mv=ev=>{if(!g){if(Math.hypot(ev.clientX-x0,ev.clientY-y0)<6)return;g=document.createElement("div");g.className="ghostdrag";g.innerHTML=`<img src="/thumb/${id}.jpg">`;document.body.appendChild(g);strip.querySelector(`.it[data-id="${id}"]`).classList.add("drag")}
+    ev.preventDefault();g.style.left=ev.clientX-30+"px";g.style.top=ev.clientY-30+"px";strip.querySelectorAll(".ins").forEach(n=>n.remove());
+    const its=[...strip.querySelectorAll(".it")];idx=its.length;for(let k=0;k<its.length;k++){const r=its[k].getBoundingClientRect();if(ev.clientX<r.left+r.width/2){idx=k;break}}
+    const m=document.createElement("div");m.className="ins";idx<its.length?strip.insertBefore(m,its[idx]):strip.appendChild(m)};
+  const up=safe(async()=>{removeEventListener("mousemove",mv);removeEventListener("mouseup",up);if(!g)return;g.remove();strip.querySelectorAll(".ins").forEach(n=>n.remove());dragged=true;setTimeout(()=>dragged=false,60);
+    const order=clips().map(c=>c.id),from=order.indexOf(id);if(from<0||idx==null){dock();return}order.splice(from,1);if(from<idx)idx--;order.splice(idx,0,id);await api("/api/set",{set:cur,order});await changed()});
+  addEventListener("mousemove",mv);addEventListener("mouseup",up)}
+// ---------- music ----------
+const setMusic=safe(async(id,st)=>{await ensureEdit();await api("/api/set",{set:cur,music:{id,start:Math.max(0,+(st||0).toFixed(2))}});$("dock").classList.remove("shut");await changed();toast("Music added. Drag the green bar to choose where it starts.",3500)});
+$("bMusic").onclick=()=>{$("mpop").classList.add("on");$("murl").value="";$("murl").focus()};$("mx").onclick=()=>$("mpop").classList.remove("on");
+$("mfile").onclick=()=>{fileKind="music";$("fileIn").accept="audio/*,video/*";$("fileIn").click()};
+$("murl").onkeydown=e=>{if(e.key=="Enter")$("mget").click();if(e.key=="Escape")$("mx").click()};
+$("mget").onclick=safe(async()=>{const url=$("murl").value.trim();if(!url){toast("Paste a link first.");return}$("mget").disabled=true;$("mget").textContent="Getting it…";
+  try{const r=await api("/api/music",{url});let j;for(;;){await new Promise(x=>setTimeout(x,1500));j=await api("/api/job?id="+r.job);if(j.state!="running")break;$("mnote").textContent=j.note||"Getting the song…"}
+    if(j.state=="failed")throw new Error("Couldn't get that song: "+(j.error||"unknown error"));
+    D=await api("/api/index");reindex();$("mpop").classList.remove("on");await setMusic(j.item,0);if(j.note)toast(j.note,7000)}
+  finally{$("mget").disabled=false;$("mget").textContent="Get song";$("mnote").textContent="The song is used to cut on the beat and to preview. It's left out of the finished file unless you tick “I have the rights”, so you can add it in Instagram or TikTok."}});
+$("bBeat").onclick=safe(async()=>{const m=S[cur];if(!m||!m.music){toast("Add music first: the cuts follow its beat.");$("bMusic").click();return}
+  await api("/api/set",{set:cur,beat:!beatOn()});await changed()});
+// ---------- preview the edit ----------
+function playEdit(){if(playing){stopEdit();return}const cs=clips().filter(c=>byId[c.id]&&byId[c.id].source=="local");if(!cs.length)return;
+  const m=S[cur]||{},mu=m.music&&byId[m.music.id],A=$("mus");$("pv").classList.add("on");$("trim").innerHTML="";$("looks").parentElement.style.display="none";$("pvName").textContent="Your edit";
+  playing={cs,k:-1,timer:null};if(mu){A.src=mu.play;A.currentTime=(m.snapped?m.snapped.music_start:m.music.start)||0;A.play().catch(()=>{})}else A.removeAttribute("src");
+  $("bPlay").textContent="■ Stop";next()}
+function next(){const pl=playing;if(!pl)return;pl.k++;if(pl.k>=pl.cs.length){stopEdit();return}const c=pl.cs[pl.k],i=byId[c.id],st=$("stage");clearTimeout(pl.timer);
+  document.querySelectorAll(".it").forEach(e=>e.classList.toggle("sel",e.dataset.id==c.id));
+  if(i.type=="photo"){st.innerHTML=`<img src="${i.play}" alt="">`;V=null;pl.timer=setTimeout(()=>{if(playing===pl)next()},c.dur*1000);return}
+  const v=document.createElement("video");v.playsInline=true;v.preload="auto";v.muted=!!$("mus").getAttribute("src");v.src=i.play;st.innerHTML="";st.appendChild(v);V=v;
+  const go=()=>{if(playing!==pl||V!==v)return;v.currentTime=c.in||0;v.play().catch(()=>{});pl.timer=setTimeout(()=>{if(playing===pl)next()},c.dur*1000+120)};
+  v.readyState>=2?go():v.addEventListener("loadeddata",go,{once:true});v.onerror=()=>{if(playing===pl)next()}}
+function stopEdit(){if(!playing)return;clearTimeout(playing.timer);playing=null;$("mus").pause();if(V)V.pause();$("bPlay").textContent="▶ Preview";if(sel)open(sel);else{$("stage").innerHTML="";$("pv").classList.remove("on")}}
+$("bPlay").onclick=playEdit;
+// ---------- make the video ----------
+$("bMake").onclick=safe(async()=>{if(!cur)return;stopEdit();await api("/api/render",{set:cur});$("bMake").disabled=true;$("bMake").textContent="Making…";load(1);poll()});
+async function poll(){let r;try{r=await api("/api/render?set="+encodeURIComponent(cur))}catch(e){setTimeout(poll,3000);return}
+  if(r.state=="running"){setTimeout(poll,2000);return}load(-1);$("bMake").disabled=false;$("bMake").textContent="Make video";
+  if(r.state!="done"){toast("Couldn't make the video: "+((r.log||"").split("\n").filter(Boolean).pop()||"unknown error"),9000);return}
+  D=await api("/api/index");reindex();const m=S[cur]||{},pass=/RESULT: PASS/.test(r.log||"");
+  $("rT").textContent=pass?"Your video is ready":"Your video is made, but check it";$("rV").src=r.item?`/file/${r.item}?v=${Date.now()}`:"";
+  $("rN").innerHTML=`${esc(r.out.split("/clients/")[1]||r.out)}<br>${m.music&&!m.rights?"The song isn't in this file: add it in the app, starting at "+mmss((m.snapped?m.snapped.music_start:m.music.start)||0)+".<br>":""}${pass?"Passed the release check (1080×1920, no watermark).":"The release check flagged something: ask Claude to look."}`;
+  $("rpop").classList.add("on")}
+$("rX").onclick=()=>{$("rV").pause();$("rpop").classList.remove("on")};
+// ---------- Claude + voice ----------
+function say(t,canUndo){$("say").classList.add("on");$("sayTx").textContent=t;$("sayUndo").style.display=canUndo?"":"none"}
+$("sayX").onclick=()=>$("say").classList.remove("on");
+const ask=safe(async()=>{const q=$("q").value.trim();if(!q){toast("Type or say what you want first.");$("q").focus();return}
+  say("Thinking…");$("askb").disabled=true;try{const r=await api("/api/ai",{prompt:q,set:cur,sel});
+    if(r.mode!="live"){say("Claude isn't signed in on this Mac, so this was sent to Claude Code. Say “/video-studio prompts” there.");return}
+    const did=await act(r.actions||[]);say((r.reply||"Done.")+(did.length?"\n"+did.join(" · "):""),!!undo)}
+  catch(e){say("Couldn't ask Claude: "+e.message)}finally{$("askb").disabled=false}});
+$("askb").onclick=ask;
+async function act(acts){const did=[];let edits=false;const snap=cur?{set:cur,meta:JSON.parse(JSON.stringify(S[cur]||{})),picks:JSON.parse(JSON.stringify(P[cur]||{}))}:null;
+  for(const a of acts){try{switch(a.type){
+    case "show":aiIds=(a.ids||[]).filter(id=>byId[id]);did.push(aiIds.length+" found");break;
+    case "search":$("q").value=a.q||"";aiIds=null;break;
+    case "select":if(byId[a.id])open(a.id);break;
+    case "new_timeline":await newEdit();edits=true;did.push("new edit");break;
+    case "append":{const i=byId[a.id];if(!i||i.source!="local")break;await ensureEdit();const b={pick:true};if(a.in!=null)b.in=a.in;if(a.out!=null)b.out=a.out;if(i.type=="photo"&&b.out==null){b.in=0;b.out=2.5}
+      P[cur]=P[cur]||{};P[cur][a.id]=await api("/api/pick",{id:a.id,set:cur,...b});S=await api("/api/sets");const o=(S[cur].timeline||[]).map(c=>c.id).filter(x=>x!=a.id);o.push(a.id);await api("/api/set",{set:cur,order:o});edits=true;did.push("added a shot");break}
+    case "remove":if(cur&&byId[a.id]){P[cur][a.id]=await api("/api/pick",{id:a.id,set:cur,pick:false});edits=true;did.push("took one out")}break;
+    case "order":if(cur){await api("/api/set",{set:cur,order:a.ids||[]});edits=true;did.push("reordered")}break;
+    case "music":if(byId[a.id]){await ensureEdit();await api("/api/set",{set:cur,music:{id:a.id,start:a.start||0}});edits=true;did.push("set the music")}break;
+    case "grid":if(cur){await api("/api/set",{set:cur,grid:a.value});edits=true}break;
+    case "look":if(cur&&LOOKS.looks[a.value]){await api("/api/set",{set:cur,look:a.value});edits=true;did.push(LOOKS.looks[a.value].label+" look")}break;
+    case "snap":if(cur){await api("/api/set",{set:cur,beat:true});edits=true}break}}catch(e){did.push("couldn't "+a.type)}}
+  if(edits){undo=snap;$("dock").classList.remove("shut");await changed()}else undo=null;chips();results();return did}
+$("sayUndo").onclick=safe(async()=>{const s=undo;if(!s)return;undo=null;cur=s.set;const now=(await api("/api/picks"))[s.set]||{};
+  for(const id of new Set([...Object.keys(now),...Object.keys(s.picks)])){const was=!!(s.picks[id]&&s.picks[id].pick),is=!!(now[id]&&now[id].pick);
+    if(was!=is||(was&&(s.picks[id].in!==now[id].in||s.picks[id].out!==now[id].out)))await api("/api/pick",{id,set:s.set,pick:was,...(was?{in:s.picks[id].in??"",out:s.picks[id].out??""}:{})})}
+  await api("/api/set",{set:s.set,order:s.meta.order||[],music:s.meta.music||null,grid:s.meta.grid||"beat",look:s.meta.look||null});P=await api("/api/picks");await changed();say("Undone.")});
+let rec=null;
+$("mic").onclick=safe(async()=>{if(rec){rec.stop();return}
+  if(!navigator.mediaDevices||!window.MediaRecorder){toast("This browser can't record. Open the studio in Chrome or Safari.",5000);return}
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){toast("Microphone is blocked. Allow it for this page, then press 🎤 again.",6000);return}
+  const chunks=[];rec=new MediaRecorder(stream);rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  rec.onstop=safe(async()=>{stream.getTracks().forEach(t=>t.stop());$("mic").classList.remove("rec");const type=rec.mimeType;rec=null;if(!chunks.length)return;
+    say("Listening back…");load(1);let j;try{const r=await fetch("/api/transcribe",{method:"POST",body:new Blob(chunks,{type})});j=await r.json();if(!r.ok)throw new Error(j.error||r.status)}finally{load(-1)}
+    const text=(j.text||"").replace(/[.!?]+$/,"").trim();if(!text){say("Didn't catch that. Try again.");return}
+    $("q").value=text;aiIds=null;showAll=false;chips();results();const r=matches();if(r&&r.length&&text.split(/\s+/).length<=2){$("say").classList.remove("on");return}await ask()});
+  rec.start();$("mic").classList.add("rec");toast("Listening… press 🎤 again when you're done",2500);setTimeout(()=>{if(rec&&rec.state=="recording")rec.stop()},30000)});
+// ---------- import from Finder ----------
+let fileKind="clip",depth=0;const hasFiles=e=>[...(e.dataTransfer?.types||[])].includes("Files");
+addEventListener("dragenter",e=>{if(hasFiles(e)){depth++;$("dropz").classList.add("on")}});
+addEventListener("dragleave",e=>{if(hasFiles(e)){depth=Math.max(0,depth-1);if(!depth)$("dropz").classList.remove("on")}});
+addEventListener("dragover",e=>{if(hasFiles(e))e.preventDefault()});
+addEventListener("drop",safe(async e=>{if(!hasFiles(e))return;e.preventDefault();depth=0;$("dropz").classList.remove("on");await upload([...e.dataTransfer.files],"clip")}));
+$("fileIn").onchange=safe(async e=>{const f=[...e.target.files];e.target.value="";if(f.length)await upload(f,fileKind)});
+async function upload(files,kind){const got=[];for(const f of files){const k=kind=="music"||f.type.startsWith("audio/")?"music":"clip";toast(`Adding ${f.name}…`,60000);load(1);
+    try{const r=await fetch(`/api/upload?kind=${k}&name=${encodeURIComponent(f.name)}`,{method:"POST",body:f});const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);got.push([k,j.item])}
+    catch(e){toast(`${f.name}: ${e.message}`,5000)}finally{load(-1)}}
+  if(!got.length)return;D=await api("/api/index");reindex();$("mpop").classList.remove("on");const mu=got.find(g=>g[0]=="music");if(mu)await setMusic(mu[1].id,0);
+  const cl=got.filter(g=>g[0]=="clip").map(g=>g[1].id);if(cl.length){aiIds=cl;chips();results();toast(`Added ${cl.length} file${cl.length>1?"s":""}. Press + to put them in your edit.`,3500)}}
+// ---------- keys ----------
+document.addEventListener("keydown",e=>{const tg=e.target&&e.target.closest?e.target:document.body;
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()=="f"){e.preventDefault();$("q").focus();$("q").select();return}
+  if(e.key=="Escape"){document.querySelectorAll(".pop.on").forEach(p=>p.classList.remove("on"));stopEdit();return}
+  if(tg.closest("input,select,textarea")||e.metaKey||e.ctrlKey)return;if(tg.tagName=="BUTTON")tg.blur();
+  if(e.key==" "){e.preventDefault();if(e.shiftKey)playEdit();else if(V&&!playing)V.paused?V.play().catch(()=>{}):V.pause()}
+  else if(e.key=="/"){e.preventDefault();$("q").focus()}});
+document.addEventListener("mouseup",e=>{const b=e.target.closest&&e.target.closest("button");if(b)b.blur()});
+window.addEventListener("error",e=>toast("Something went wrong: "+e.message,5000));
+start();
+</script>
+</body>
+</html>

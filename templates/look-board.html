@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{TITLE}}</title>
+<style>
+:root{--bg:#f6f5f2;--panel:#fff;--ink:#1d1c1a;--mute:#6b6862;--line:#e2dfd8;--pick:#15803d}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--panel:#1f1e1c;--ink:#eceae5;--mute:#9b978f;--line:#33312d}}
+*{box-sizing:border-box}body{margin:0 auto;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,system-ui,sans-serif;padding:20px 16px;max-width:1200px}
+h1{font-size:18px;margin:0 0 4px}.sub{color:var(--mute);margin:0 0 18px}
+.look{background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:12px;margin:0 0 14px}.look.on{border-color:var(--pick)}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 8px;flex-wrap:wrap}.hd b{font-size:15px}.hd span{color:var(--mute);font-size:12px}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}.row img{width:100%;border-radius:4px;display:block;cursor:zoom-in}
+button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 14px;font:inherit;cursor:pointer}
+.on .pk{background:var(--pick);color:#fff;border-color:var(--pick)}
+textarea{width:100%;min-height:60px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px;font:inherit}
+#z{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center}#z img{max-height:94vh;max-width:94vw}
+</style></head><body>
+<h1>Colour grade options</h1>
+<p class="sub" id="sub"></p>
+<div id="looks"></div>
+<textarea id="note" placeholder="Notes on the looks (optional)"></textarea>
+<p class="sub" id="saved"></p>
+<div id="z" onclick="this.style.display='none'"><img alt=""></div>
+<script>
+const DATA=/*DATA*/null;
+let pick=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+$("sub").textContent=`The same ${DATA.frames.length} frame(s) in each look (${DATA.frames.join(", ")}). One look goes on every shot. Hooks, text and end cards stay ungraded. Click a frame to zoom. Your pick is saved to the studio's ratings.`;
+function render(){$("looks").innerHTML=DATA.looks.map(([k,n,d])=>`<div class="look ${pick==k?"on":""}"><div class="hd"><div><b>${esc(n)}</b> <span>${esc(d)}</span></div><button class="pk" onclick="choose('${k}')">${pick==k?"✓ Picked":"Pick this look"}</button></div><div class="row">${DATA.frames.map((_,i)=>`<img loading="lazy" src="${k}_s${i+1}.jpg" onclick="zoom(this.src)">`).join("")}</div></div>`).join("")}
+function zoom(s){const z=$("z");z.querySelector("img").src=s;z.style.display="flex"}
+async function post(item,overall,verdict){return fetch("/api/rate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({v:2,kind:"look",item,batch:DATA.batch,overall,verdict,note:$("note").value.trim(),scores:{}})})}
+async function choose(k){const prev=pick;pick=k;render();
+  try{if(prev&&prev!=k)await post(prev,null,"Swap");const r=await post(k,5,"Keep");if(!r.ok)throw 0;$("saved").textContent="Saved "+new Date().toLocaleTimeString("en-GB",{timeZone:"Europe/Lisbon"})}
+  catch(e){$("saved").textContent="Not saved: is board_server.py running?"}}
+$("note").onchange=()=>pick&&choose(pick);
+fetch("/api/rate?kind=look&batch="+encodeURIComponent(DATA.batch)).then(r=>r.json()).then(j=>{const p=Object.values(j).filter(e=>(e.overall||0)>=4).sort((a,b)=>(a.saved_at<b.saved_at?1:-1))[0];if(p){pick=p.item;$("note").value=p.note||""}render()}).catch(render);
+</script></body></html>

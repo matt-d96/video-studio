@@ -1,0 +1,26 @@
+#!/bin/zsh
+# vertical <in> <out.mp4> [captions.srt] [start] [end]
+# Centre-crops/scales any clip to 1080x1920 30fps H.264, normalises loudness to -14 LUFS,
+# and burns captions in the studio style (white, dark outline, middle third, inside the safe zone).
+# Env: CROP_X=<px> reframes a landscape source (left edge of a 9:16 window, in source pixels) instead of centre-cropping.
+#      FADE=0.3 adds short audio fades in/out (avoids clicks on hard in/out points).
+set -eu
+STUDIO="${0:A:h:h}"; FF="$STUDIO/bin/ffmpeg"
+in="$1"; out="$2"; srt="${3:-}"; ss="${4:-}"; to="${5:-}"
+if [[ -n "${CROP_X:-}" ]]; then
+  vf="crop=trunc(ih*9/16/2)*2:ih:${CROP_X}:0,scale=1080:1920:flags=lanczos,setsar=1,fps=30,format=yuv420p"
+else
+  vf="scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30,format=yuv420p"
+fi
+af="loudnorm=I=-14:TP=-1.5:LRA=11"
+if [[ -n "${FADE:-}" && -n "$ss" && -n "$to" ]]; then
+  st=$(python3 -c "print($to-$ss-$FADE)"); af="afade=t=in:d=${FADE},afade=t=out:st=${st}:d=${FADE},$af"
+fi
+if [[ -n "$srt" ]]; then
+  esc="${srt//:/\\:}"
+  vf="$vf,subtitles='$esc':force_style='FontName=Helvetica Neue,Bold=1,FontSize=13,PrimaryColour=&H00FFFFFF,OutlineColour=&H80000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginV=150'"
+fi
+args=(); [[ -n "$ss" ]] && args+=(-ss "$ss"); [[ -n "$to" ]] && args+=(-to "$to")
+$FF -hide_banner -loglevel error -y "${args[@]}" -i "$in" -vf "$vf" -af "$af" \
+  -dn -map_metadata -1 -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 48000 -movflags +faststart "$out"
+echo "wrote $out"; "$STUDIO/scripts/release-check" "$out"

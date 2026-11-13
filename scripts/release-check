@@ -1,0 +1,30 @@
+#!/bin/zsh
+# release-check <video> : the gate every file passes before it goes to Ready to Post.
+# Fails on: below 1080x1920 (Descript free / CapCut free exports are 720p), not 9:16, over 90s,
+# no audio, watermark-ish metadata. Always writes a corner contact sheet for the human watermark look.
+set -u
+STUDIO="${0:A:h:h}"; FF="$STUDIO/bin/ffmpeg"; FP="$STUDIO/bin/ffprobe"
+f="$1"; [[ -f "$f" ]] || { echo "no file: $f"; exit 2; }
+fail=0; say(){ print -- "$1"; }
+wh=$($FP -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$f" | head -1 | tr -d "[:space:]"); w=${wh%x*}; h=${wh#*x}
+[[ -n "$w" && -n "$h" ]] || { echo "FAIL could not read video size"; exit 1; }
+dur=$($FP -v error -show_entries format=duration -of csv=p=0 "$f"); dur=${dur%.*}
+aud=$($FP -v error -select_streams a -show_entries stream=index -of csv=p=0 "$f" | grep -m1 "[0-9]")
+tags=$($FP -v error -show_entries format_tags:stream_tags -of default=nw=1 "$f" | tr 'A-Z' 'a-z')
+(( w >= 1080 && h >= 1920 )) && say "PASS resolution ${w}x${h}" || { say "FAIL resolution ${w}x${h} (need 1080x1920+; 720p usually means a watermarked free-plan export)"; fail=1; }
+sar=$($FP -v error -select_streams v:0 -show_entries stream=sample_aspect_ratio -of csv=p=0 "$f" | grep -m1 ":")
+[[ -z "$sar" || "$sar" == "1:1" || "$sar" == "0:1" ]] && say "PASS square pixels" || { say "FAIL pixel aspect $sar (fix: ffmpeg -i in -c copy -aspect 9:16 out)"; fail=1; }
+(( w * 16 == h * 9 )) && say "PASS 9:16" || { say "FAIL aspect ${w}x${h} is not 9:16"; fail=1; }
+(( dur <= 90 )) && say "PASS duration ${dur}s" || say "WARN duration ${dur}s (Reels >90s and Shorts >60s with claimed music lose reach/monetisation)"
+(( dur <= 60 )) || say "WARN over 60s: make a Shorts cut if it uses a claimed track"
+[[ -n "$aud" ]] && say "PASS audio track present" || say "WARN no audio track"
+[[ "$tags" == *descript* || "$tags" == *capcut* || "$tags" == *watermark* || "$tags" == *opus* ]] && { say "FAIL metadata mentions an editor with free-plan watermarks"; fail=1; } || say "PASS metadata"
+if [[ -n "$aud" ]]; then
+  lufs=$($FF -hide_banner -nostats -i "$f" -af loudnorm=print_format=summary -f null - 2>&1 | awk '/Input Integrated/{print $3}')
+  say "INFO loudness ${lufs} LUFS (target about -14)"
+fi
+sheet="${f:r}.release-check.jpg"
+$FF -loglevel error -y -i "$f" -vf "fps=1/$(( dur>3 ? dur/3 : 1 )),scale=540:-1,crop=540:300:0:ih-300,tile=3x1" -frames:v 1 "${sheet:r}-bottom.jpg" 2>/dev/null
+$FF -loglevel error -y -i "$f" -vf "fps=1/$(( dur>3 ? dur/3 : 1 )),scale=540:-1,crop=540:300:0:0,tile=3x1" -frames:v 1 "${sheet:r}-top.jpg" 2>/dev/null
+say "LOOK  open ${sheet:r}-top.jpg and ${sheet:r}-bottom.jpg: no logo or watermark in any corner"
+(( fail == 0 )) && { say "RESULT: PASS (after the corner look)"; exit 0; } || { say "RESULT: FAIL, do not post"; exit 1; }
