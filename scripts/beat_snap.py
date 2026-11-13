@@ -32,7 +32,16 @@ def snap(edl, grid=None):
     want = sum(c["dur"] for c in edl["clips"])
     bpm, bt = B.track(edl["music"], float(edl.get("music_start", 0)), want + 8)
     step = {"beat": 1, "half": 2, "bar": 4}[grid]
-    off = int(edl.get("bar_offset", 0)) if grid != "beat" else 0
+    if grid == "beat":
+        off = 0
+    elif "bar_offset" in edl:
+        off = int(edl["bar_offset"])
+    else:  # beat 1 = the beat phase with the most low-end (kick) energy (Matt, 13 Nov 2026: cut on the 1st beat of the bar)
+        import numpy as np
+        s0 = float(edl.get("music_start", 0)); x = B.load(edl["music"], s0, want + 8)
+        lp = np.convolve(x, np.ones(64) / 64, "same"); sr = B.SR
+        en = [float(np.sum(lp[int(t * sr):int((t + .1) * sr)] ** 2)) for t in bt]
+        off = int(np.argmax([np.mean(en[p::step]) for p in range(step)]))
     pts = bt[off::step]
     if not pts:
         sys.exit("No beats found in that part of the track.")
@@ -46,7 +55,8 @@ def snap(edl, grid=None):
         if not later:
             sys.exit("Track segment too short for these clips: lower the durations or move music_start.")
         cut = min(later, key=lambda p: abs(p - target))
-        out.append({**c, "want": c["dur"], "dur": round(cut - t, 3)})
+        cut = round(cut * 30) / 30  # frame-exact (30 fps), so per-clip rounding never adds up across cuts
+        out.append({**c, "want": c["dur"], "dur": round(cut - t, 6)})
         t = cut
     return {**edl, "grid": grid, "bpm": round(bpm, 2), "music_start": round(float(edl.get("music_start", 0)) + origin, 3),
             "beats": [round(p, 3) for p in pts if p <= t + 0.01], "clips": out, "length": round(t, 3)}
